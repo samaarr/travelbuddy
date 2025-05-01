@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelBuddy - Weather & AQI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+      color: #333;
+    }
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      width: 300px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #results {
+      margin-top: 30px;
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .section {
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .section:last-child {
+      border-bottom: none;
+    }
+    pre {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .packing-list, .travel-tips {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    ul {
+      padding-left: 20px;
+      margin-top: 5px;
+    }
+    li {
+      margin-bottom: 5px;
+    }
+    .error {
+      color: #e74c3c;
+      padding: 10px;
+      background: #fdecea;
+      border-radius: 4px;
+    }
+    .aqi-indicator {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: white;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+    .weather-highlight {
+      font-weight: bold;
+      color: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+  <h2>TravelBuddy</h2>
+  <p>Enter a city to get weather, air quality, and packing suggestions:</p>
+  
+  <input type="text" id="cityInput" placeholder="Enter city name" />
+  <button onclick="fetchData()">Search</button>
+
+  <div id="results"></div>
+
+  <script>
+    async function fetchData() {
+      const city = document.getElementById('cityInput').value.trim();
+      if (!city) {
+        showError("Please enter a city name");
+        return;
+      }
+
+      try {
+        // Show loading state
+        document.getElementById('results').innerHTML = `
+          <div class="section">
+            <h3>Loading data for ${city}...</h3>
+          </div>
+        `;
+
+        const response = await fetch(`/api/${encodeURIComponent(city)}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "City not found or service error");
+        }
+
+        const data = await response.json();
+        displayResults(city, data);
+        
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function displayResults(city, data) {
+      // Get AQI level and color
+      const aqiLevel = data.aqi.aqi;
+      const aqiColor = getAqiColor(aqiLevel);
+      
+      // Format packing data
+      let packingHtml = '';
+      if (data.packing.error) {
+        packingHtml = `<p class="error">${data.packing.error}</p>`;
+      } else {
+        packingHtml = `
+          <div class="packing-list">
+            <h4>Packing List:</h4>
+            <ul>
+              ${data.packing.packing_list.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="travel-tips">
+            <h4>Travel Tips:</h4>
+            <ul>
+              ${data.packing.travel_tips.map(tip => `<li>${tip}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      document.getElementById('results').innerHTML = `
+        <div class="section">
+          <h3>Weather in ${city}</h3>
+          <p><span class="weather-highlight">Temperature:</span> ${data.weather.temp}°C (Feels like ${data.weather.feels_like}°C)</p>
+          <p><span class="weather-highlight">Conditions:</span> ${data.weather.description}</p>
+          <p><span class="weather-highlight">Humidity:</span> ${data.weather.humidity}%</p>
+          <p><span class="weather-highlight">Wind Speed:</span> ${data.weather.wind_speed} m/s</p>
+        </div>
+        
+        <div class="section">
+          <h3>Air Quality Index</h3>
+          <p><span class="weather-highlight">AQI:</span> 
+            <span class="aqi-indicator" style="background-color: ${aqiColor}">
+              ${aqiLevel} - ${data.aqi.level}
+            </span>
+          </p>
+          <p><span class="weather-highlight">Main Pollutants:</span> PM2.5: ${data.aqi.components.pm2_5} μg/m³, PM10: ${data.aqi.components.pm10} μg/m³</p>
+        </div>
+        
+        <div class="section">
+          <h3>Packing Suggestions</h3>
+          ${packingHtml}
+        </div>
+      `;
+    }
+
+    function showError(message) {
+      document.getElementById('results').innerHTML = `
+        <div class="error">
+          <h3>Error</h3>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    function getAqiColor(aqi) {
+      // AQI color scale (1-5)
+      const colors = {
+        1: '#00e400',  // Good
+        2: '#ffff00',  // Fair
+        3: '#ff7e00',  // Moderate
+        4: '#ff0000',  // Poor
+        5: '#8f3f97'   // Very Poor
+      };
+      return colors[aqi] || '#cccccc';
+    }
+
+    // Allow searching by pressing Enter key
+    document.getElementById('cityInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        fetchData();
+      }
+    });
+  </script>
+</body>
+</html>
