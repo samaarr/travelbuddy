@@ -1,0 +1,6 @@
+fastapi==0.95.2
+uvicorn==0.22.0
+python-dotenv==1.0.0
+requests==2.31.0
+transformers==4.30.0  # For LLM cultural tips
+googlemaps==4.10.0    # For places API
