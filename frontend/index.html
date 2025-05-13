@@ -139,23 +139,22 @@
       // Format packing data
       let packingHtml = '';
       if (data.packing.error) {
-        packingHtml = `<p class="error">${data.packing.error}</p>`;
-      } else {
-        packingHtml = `
-          <div class="packing-list">
-            <h4>Packing List:</h4>
-            <ul>
-              ${data.packing.packing_list.map(item => `<li>${item}</li>`).join('')}
-            </ul>
-          </div>
-          <div class="travel-tips">
-            <h4>Travel Tips:</h4>
-            <ul>
-              ${data.packing.travel_tips.map(tip => `<li>${tip}</li>`).join('')}
-            </ul>
-          </div>
-        `;
-      }
+          packingHtml = `<p class="error">${data.packing.error}</p>`;
+        } else {
+          const packingItems = data.packing.packing_list.map(item => `<li>${item}</li>`).join('');
+          const travelTips = data.packing.travel_tips.map(tip => `<li>${tip}</li>`).join('');
+
+          packingHtml = `
+            <div class="packing-list">
+              <h3>Packing List:</h3>
+              <ul>${packingItems}</ul>
+            </div>
+            <div class="travel-tips">
+              
+              <ul>${travelTips}</ul>
+            </div>
+          `;
+        }
 
       document.getElementById('results').innerHTML = `
         <div class="section">

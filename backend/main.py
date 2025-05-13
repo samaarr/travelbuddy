@@ -21,19 +21,18 @@ app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 @app.get("/api/{city}")
 async def get_guide(city: str):
     try:
-        # Get weather and AQI data
         weather = WeatherService().get_weather(city)
         aqi = AQIService().get_aqi(city)
         
-        # Get packing suggestions
         packing = get_packing_suggestions(
             city=city,
             temperature=weather["temp"],
             aqi=aqi["aqi"]
         )
         
-        # Fallback if packing service fails
+        # Only use fallback if there's an error
         if "error" in packing:
+            print(f"\n[WARNING] Packing service error: {packing['error']}")  # Log the error
             packing = {
                 "packing_list": [
                     "Light clothing",
@@ -48,8 +47,6 @@ async def get_guide(city: str):
                     "Plan indoor activities when AQI is high"
                 ]
             }
-
-            
         
         return {
             "weather": weather,
@@ -57,10 +54,6 @@ async def get_guide(city: str):
             "packing": packing
         }
         
-    except HTTPException as e:
-        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Service error: {str(e)}"
-        )
+        print(f"\n[ERROR] API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
